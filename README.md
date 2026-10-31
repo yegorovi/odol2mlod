@@ -14,10 +14,10 @@ odol2mlod input.p3d out.p3d      результат по своему пути
 odol2mlod input.p3d -v           трассировка чтения по секциям
 ```
 
-Сборка (любой modern C++-компилятор, нужен C++20):
+Сборка (любой modern C++-компилятор, нужен C++17):
 
 ```
-g++ -O2 -std=c++20 -static -Wall -Wextra -o odol2mlod.exe odol2mlod.cpp
+g++ -O2 -std=c++17 -static -Wall -Wextra -o odol2mlod.exe odol2mlod.cpp
 ```
 
 ## GUI (Qt6)
