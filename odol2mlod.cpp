@@ -332,7 +332,7 @@ public:
 private:
 			// распаковка LZO1X: классическая state machine с goto, так здесь нагляднее
 	// литерал-ран, потом матч m1..m4, потом хвостовые литералы и снова матч
-	size_t lzo1xDecompress(const uint8_t* in, size_t inLen, uint8_t* out, size_t outLen) {
+	size_t lzo1xDecompress(const uint8_t* in, size_t inLen, uint8_t* out, size_t outLen){
 		const uint8_t* ip = in;
 		const uint8_t* ipEnd = in + inLen;
 		uint8_t* op = out;
@@ -341,42 +341,42 @@ private:
 		uint32_t t;
 		const uint8_t* start = in;
 
-		if (inLen < 3) {
+		if (inLen < 3){
 			PARSE_FAIL("LZO: вход слишком короткий");
 		}
 
 		// без этих проверок битый файл валит процесс молча, без единой строчки
 		auto needIn = [&](size_t n) {
-			if ((size_t)(ipEnd - ip) < n) {
+			if ((size_t)(ipEnd - ip) < n){
 				PARSE_FAIL("LZO: конец входа");
 			}
 		};
 		auto needOut = [&](size_t n) {
-			if ((size_t)(opEnd - op) < n) {
+			if ((size_t)(opEnd - op) < n){
 				PARSE_FAIL("LZO: переполнение выхода");
 			}
 		};
 
-		if (*ip > 17) {
+		if (*ip > 17){
 			t = (uint32_t)(*ip++ - 17);
-			if (t < 4) {
+			if (t < 4){
 				goto match_next;
 			}
 			needIn(t); needOut(t);
-			for (uint32_t i = 0; i < t; i++) {
+			for (uint32_t i = 0; i < t; i++){
 				*op++ = *ip++;
 			}
 			goto first_literal_run;
 		}
 
-		for (;;) {
+		for (;;){
 			t = *ip++;
-			if (t >= 16) {
+			if (t >= 16){
 				goto match;
 			}
-			if (t == 0) {
+			if (t == 0){
 				// длинные литералы: серия нулевых байтов плюс остаток
-				while (*ip == 0) {
+				while (*ip == 0){
 					t += 255;
 					ip++;
 				}
@@ -386,17 +386,17 @@ private:
 			*op++ = *ip++;
 			*op++ = *ip++;
 			*op++ = *ip++;
-			for (uint32_t i = 0; i < t; i++) {
+			for (uint32_t i = 0; i < t; i++){
 				*op++ = *ip++;
 			}
 		first_literal_run:
 			t = *ip++;
-			if (t >= 16) {
+			if (t >= 16){
 				goto match;
 			}
 			// после литерал-рана опкод меньше 16 - это короткий матч в 3 байта из окна 2048
 			mPos = op - 1 - (t >> 2) - ((size_t)(*ip++) << 2);
-			if (mPos < out || mPos >= op) {
+			if (mPos < out || mPos >= op){
 				PARSE_FAIL("LZO: битый m2 offset");
 			}
 			needOut(3);
@@ -406,24 +406,24 @@ private:
 			goto match_done;
 
 		match:
-			if (t >= 64) {
+			if (t >= 64){
 				// m2: 11-битное окно, длина (t>>5)-1, копия минимум 3 байта
 				mPos = op - 1 - ((t >> 2) & 7) - ((size_t)(*ip++) << 3);
 				t = (t >> 5) - 1;
-				if (mPos < out || mPos >= op) {
+				if (mPos < out || mPos >= op){
 					PARSE_FAIL("LZO: битый m2 offset");
 				}
 				needOut(t + 2);
 				*op++ = *mPos++;
 				*op++ = *mPos++;
-				for (uint32_t i = 0; i < t; i++) {
+				for (uint32_t i = 0; i < t; i++){
 					*op++ = *mPos++;
 				}
-			} else if (t >= 32) {
+			} else if (t >= 32){
 				// m3: 14-битное окно, длинная длина по тем же нулям
 				t &= 0x1F;
-				if (t == 0) {
-					while (*ip == 0) {
+				if (t == 0){
+					while (*ip == 0){
 						t += 255;
 						ip++;
 					}
@@ -431,21 +431,21 @@ private:
 				}
 				mPos = op - 1 - ((ip[0] >> 2) + ((size_t)ip[1] << 6));
 				ip += 2;
-				if (mPos < out || mPos >= op) {
+				if (mPos < out || mPos >= op){
 					PARSE_FAIL("LZO: битый m3 offset");
 				}
 				needOut(t + 2);
 				*op++ = *mPos++;
 				*op++ = *mPos++;
-				for (uint32_t i = 0; i < t; i++) {
+				for (uint32_t i = 0; i < t; i++){
 					*op++ = *mPos++;
 				}
-			} else if (t >= 16) {
+			} else if (t >= 16){
 				// m4: большое окно + смещение 16384, нулевая длина тут же означает конец потока
 				mPos = op - ((t & 8) << 11);
 				t &= 7;
-				if (t == 0) {
-					while (*ip == 0) {
+				if (t == 0){
+					while (*ip == 0){
 						t += 255;
 						ip++;
 					}
@@ -453,26 +453,26 @@ private:
 				}
 				mPos -= (ip[0] >> 2) + ((size_t)ip[1] << 6);
 				ip += 2;
-				if (mPos == op) {
-					if (op != opEnd) {
+				if (mPos == op){
+					if (op != opEnd){
 						PARSE_FAIL("LZO: неожиданный конец потока");
 					}
 					return (size_t)(ip - start);
 				}
 				mPos -= 16384;
-				if (mPos < out || mPos >= op) {
+				if (mPos < out || mPos >= op){
 					PARSE_FAIL("LZO: битый m4 offset");
 				}
 				needOut(t + 2);
 				*op++ = *mPos++;
 				*op++ = *mPos++;
-				for (uint32_t i = 0; i < t; i++) {
+				for (uint32_t i = 0; i < t; i++){
 					*op++ = *mPos++;
 				}
 			} else {
 				// m1: 2 байта из ближнего окна
 				mPos = op - 1 - (t >> 2) - ((size_t)(*ip++) << 2);
-				if (mPos < out || mPos >= op) {
+				if (mPos < out || mPos >= op){
 					PARSE_FAIL("LZO: битый m1 offset");
 				}
 				needOut(2);
@@ -483,24 +483,24 @@ private:
 
 		match_done:
 			t = ip[-2] & 3;
-			if (t == 0) {
+			if (t == 0){
 				continue;
 			}
 		match_next:
 			// хвостовые литералы 1..3 байта прямо за матчем
 			needIn(t); needOut(t);
-			for (uint32_t i = 0; i < t; i++) {
+			for (uint32_t i = 0; i < t; i++){
 				*op++ = *ip++;
 			}
 			t = *ip++;
 			// отсюда идёт любой match-опкод, ветки literal тут уже не нужны
-			if (t >= 64) {
+			if (t >= 64){
 				mPos = op - 1 - ((t >> 2) & 7) - ((size_t)(*ip++) << 3);
 				t = (t >> 5) - 1;
-			} else if (t >= 32) {
+			} else if (t >= 32){
 				t &= 0x1F;
-				if (t == 0) {
-					while (*ip == 0) {
+				if (t == 0){
+					while (*ip == 0){
 						t += 255;
 						ip++;
 					}
@@ -508,11 +508,11 @@ private:
 				}
 				mPos = op - 1 - ((ip[0] >> 2) + ((size_t)ip[1] << 6));
 				ip += 2;
-			} else if (t >= 16) {
+			} else if (t >= 16){
 				mPos = op - ((t & 8) << 11);
 				t &= 7;
-				if (t == 0) {
-					while (*ip == 0) {
+				if (t == 0){
+					while (*ip == 0){
 						t += 255;
 						ip++;
 					}
@@ -520,8 +520,8 @@ private:
 				}
 				mPos -= (ip[0] >> 2) + ((size_t)ip[1] << 6);
 				ip += 2;
-				if (mPos == op) {
-					if (op != opEnd) {
+				if (mPos == op){
+					if (op != opEnd){
 						PARSE_FAIL("LZO: неожиданный конец потока");
 					}
 					return (size_t)(ip - start);
@@ -529,7 +529,7 @@ private:
 				mPos -= 16384;
 			} else {
 				mPos = op - 1 - (t >> 2) - ((size_t)(*ip++) << 2);
-				if (mPos < out || mPos >= op) {
+				if (mPos < out || mPos >= op){
 					PARSE_FAIL("LZO: битый m1 offset");
 				}
 				needOut(2);
@@ -537,13 +537,13 @@ private:
 				*op++ = *mPos;
 				goto match_done;
 			}
-			if (mPos < out || mPos >= op) {
+			if (mPos < out || mPos >= op){
 				PARSE_FAIL("LZO: битый offset");
 			}
 			needOut(t + 2);
 			*op++ = *mPos++;
 			*op++ = *mPos++;
-			for (uint32_t i = 0; i < t; i++) {
+			for (uint32_t i = 0; i < t; i++){
 				*op++ = *mPos++;
 			}
 			goto match_done;
